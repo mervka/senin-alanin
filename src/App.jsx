@@ -125,6 +125,19 @@ const quizQuestions = [
   },
 ]
 
+const dailyMessagePool = [
+  'Bugün kendine biraz daha yumuşak davran. Her şeyi aynı anda çözmek zorunda değilsin.',
+  'Bunu okuduysan bugün en az bir kere gülümsemen gerekiyor. Kural bu.',
+  'Bazen sadece yanında olduğumu bilmen yeter. Bugün de öyle bir gün.',
+  'Bugün aklına güzel bir şey gelirse not al. Belki sonra birlikte hayale çeviririz.',
+  'Küçük şeyleri fazla büyütme. Ama güzel şeyleri büyütebilirsin.',
+  'Bugün biraz yorulduysan sorun değil. Dinlenmek de planın bir parçası.',
+  'Seninle ilgili sevdiğim şeylerden biri: bazen fark etmeden günü güzelleştirmen.',
+  'Bugün kendini kötü hissedersen buraya dön. Bu alan biraz da bunun için var.',
+  'Her gün mükemmel olmak zorunda değil. Ama her gün biraz kendin olman yeter.',
+  'Bugünün mesajı: acele etme, bazı güzel şeyler yavaş yavaş oluyor.',
+]
+
 function App() {
   const [currentPage, setCurrentPage] = useState('welcome')
   const [selectedMood, setSelectedMood] = useState('')
@@ -132,6 +145,9 @@ function App() {
   const [thought, setThought] = useState('')
   const [message, setMessage] = useState('')
   const [entries, setEntries] = useState([])
+  const [dailyMessage, setDailyMessage] = useState('')
+  const [dailyMessageLoading, setDailyMessageLoading] = useState(false)
+  const [dailyMessageError, setDailyMessageError] = useState('')
   
   
 
@@ -194,6 +210,12 @@ function App() {
     fetchEntries()
     fetchWishlistItems()
   }, [])
+
+  useEffect(() => {
+    if (currentPage === 'dailyMessage') {
+      fetchDailyMessage()
+    }
+  }, [currentPage])
 
   async function handleSave() {
     if (!selectedMood) {
@@ -313,6 +335,90 @@ function App() {
     setCurrentQuizIndex(0)
     setQuizMessage('')
     setShowQuizResult(false)
+  }
+
+  function getTodayDate() {
+    return new Date().toLocaleDateString('en-CA')
+  }
+
+  async function fetchDailyMessage() {
+    const today = getTodayDate()
+
+    setDailyMessageError('')
+
+    const { data, error } = await supabase
+        .from('daily_messages')
+        .select('*')
+        .eq('message_date', today)
+        .maybeSingle()
+
+    if (error) {
+      setDailyMessageError('Bugünün mesajı kontrol edilirken bir sorun oldu.')
+      return
+    }
+
+    if (data) {
+      setDailyMessage(data.message_text)
+    } else {
+      setDailyMessage('')
+    }
+  }
+
+  async function handleOpenDailyMessage() {
+    const today = getTodayDate()
+
+    setDailyMessageLoading(true)
+    setDailyMessageError('')
+
+    const { data: existingMessage } = await supabase
+        .from('daily_messages')
+        .select('*')
+        .eq('message_date', today)
+        .maybeSingle()
+
+    if (existingMessage) {
+      setDailyMessage(existingMessage.message_text)
+      setDailyMessageLoading(false)
+      return
+    }
+
+    const { data: lastMessages } = await supabase
+        .from('daily_messages')
+        .select('message_text')
+        .neq('message_date', today)
+        .order('message_date', { ascending: false })
+        .limit(1)
+
+    const lastMessage = lastMessages?.[0]?.message_text
+
+    let availableMessages = dailyMessagePool.filter((message) => (
+        message !== lastMessage
+    ))
+
+    if (availableMessages.length === 0) {
+      availableMessages = dailyMessagePool
+    }
+
+    const randomIndex = Math.floor(Math.random() * availableMessages.length)
+    const selectedMessage = availableMessages[randomIndex]
+
+    const { data, error } = await supabase
+        .from('daily_messages')
+        .insert({
+          message_date: today,
+          message_text: selectedMessage,
+        })
+        .select()
+        .single()
+
+    if (error) {
+      setDailyMessageError('Mesaj açılırken bir sorun oldu. Bir daha dener misin?')
+      setDailyMessageLoading(false)
+      return
+    }
+
+    setDailyMessage(data.message_text)
+    setDailyMessageLoading(false)
   }
 
   async function updateWishlistStatus(itemId, newStatus) {
@@ -461,6 +567,54 @@ function App() {
                   ))}
                 </div>
             )}
+          </section>
+        </main>
+    )
+  }
+
+  if (currentPage === 'dailyMessage') {
+    return (
+        <main className="app">
+          <section className="daily-message-page">
+            <button
+                className="back-button"
+                onClick={() => setCurrentPage('welcome')}
+            >
+              ← Geri
+            </button>
+
+            <p className="eyebrow">GÜNÜN MESAJI</p>
+
+            <h1>Bugün sana küçük bir not var</h1>
+
+            <p className="subtitle">
+              Her gün sadece bir mesaj açılacak. Bugünün mesajı seçildikten sonra
+              gün boyunca aynı mesaj burada kalacak.
+            </p>
+
+            <div className="daily-message-card">
+              <p>
+                {dailyMessage || 'Bugünün mesajı henüz açılmadı.'}
+              </p>
+            </div>
+
+            {dailyMessageError && (
+                <div className="soft-note">
+                  {dailyMessageError}
+                </div>
+            )}
+
+            <button
+                className="primary-button save-button daily-message-button"
+                onClick={handleOpenDailyMessage}
+                disabled={dailyMessageLoading || Boolean(dailyMessage)}
+            >
+              {dailyMessageLoading
+                  ? 'Mesaj açılıyor...'
+                  : dailyMessage
+                      ? 'Bugünün mesajı açıldı'
+                      : 'Bugünün mesajını aç'}
+            </button>
           </section>
         </main>
     )
@@ -806,6 +960,13 @@ if (currentPage === 'wishlist') {
               onClick={() => setCurrentPage('quiz')}
           >
             Quiz zamanı
+          </button>
+
+          <button
+              className="secondary-button"
+              onClick={() => setCurrentPage('dailyMessage')}
+          >
+            Günün mesajı
           </button>
           
         </section>

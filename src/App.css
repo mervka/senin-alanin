@@ -587,3 +587,75 @@ body {
   line-height: 1.5;
   font-weight: 700;
 }
+
+.daily-message-card {
+  margin-top: 24px;
+  padding: 18px;
+  border-radius: 22px;
+  background: #fff8fa;
+  border: 1px solid #f0d8e2;
+}
+
+.daily-message-card p {
+  margin: 0;
+  color: #6d5660;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.daily-message-page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 24px 60px rgba(143, 69, 103, 0.12);
+}
+
+.daily-message-page h1 {
+  max-width: 560px;
+}
+
+.daily-message-page .subtitle {
+  max-width: 600px;
+}
+
+.daily-message-page .save-button {
+  margin-top: 24px;
+}
+
+@media (max-width: 640px) {
+  .daily-message-page {
+    padding: 22px;
+    border-radius: 28px;
+  }
+}
+
+.daily-message-page {
+  min-height: calc(100vh - 72px);
+  display: flex;
+  flex-direction: column;
+}
+
+.daily-message-card {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+}
+
+.daily-message-button {
+  margin-top: auto;
+}
+
+.daily-message-page .back-button {
+  align-self: flex-start;
+}
+
+.daily-message-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+
