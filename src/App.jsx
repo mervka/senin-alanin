@@ -11,6 +11,120 @@ const moods = [
   { label: 'Karışık', emoji: '🫧' },
 ]
 
+const quizQuestions = [
+  {
+    id: 1,
+    question: 'Merve bir şeye çok heveslendiyse büyük ihtimalle ne olur?',
+    options: [
+      'Sakin sakin zamanının gelmesini bekler',
+      'Önce 48 sekme açar, sonra “yaparız ya” der',
+      'Hiç bahsetmez',
+      'Konuyu unutur',
+    ],
+    correctAnswer: 'Önce 48 sekme açar, sonra “ben bunu yaparım ya” der',
+  },
+  {
+    id: 2,
+    question: 'Merve’nin bir insanda gördüğünde seksi ve çekici bulduğu şey nedir?',
+    options: [
+      'İyi giyinmiş olması',
+      'Çok iyi araba kullanması',
+      'Sorun ne olursa olsun hallederiz insanı olması',
+      'Ağzının iyi laf yapması',
+    ],
+    correctAnswer: 'Sorun ne olursa olsun hallederiz insanı olması',
+  },
+    
+  {
+    id: 3,
+    question: 'Bu uygulama aslında ne için yapıldı?',
+    options: [
+      'Portfolyoma ekleyeceğim olum',
+      'Kimseye dökmediğin içini belki buraya dökersin diye bi umut',
+      'Kendimizi geliştiriyoruz işte böyle böyle',
+      'Sadece mutlu ol diye',
+    ],
+    correctAnswer: 'Kimseye dökmediğin içini belki buraya dökersin diye bi umut',
+  },
+  {
+    id: 4,
+    question: 'Merve’nin hayatta tahammül edemediği o malum şey nedir?',
+    options: [
+      'Çok konuşulması',
+      'Altı boş özgüven',
+      'Sürekli sırıtan bir yüz',
+      'Yalakalık',
+    ],
+    correctAnswer: 'Altı boş özgüven',
+  },
+  {
+    id: 5,
+    question: 'Merve’nin bu hayattaki gizli nihai amacı nedir?',
+    options: [
+      'Dünyayı kurtarmak',
+      'Estetik, konfor, lezzetli yemekler ve huzur dolu bir krallık kurup keyif yapmak',
+      'Çok çalışmak çok üretmek',
+      'Ölmek',
+    ],
+    correctAnswer: 'Dünyayı kurtarmak',
+  },
+  {
+    id: 6,
+    question: 'Merve’nin düzen ve temizlik seviyesine 1 ile 10 arasında puanlamanı istesek, sence gerçek puanı kaçtır?',
+    options: [
+      '5 (Ortalama bir şey işte…)',
+      '11! Ben hayatımda böyle temiz ve düzenli biri görmedim',
+      '1 (Dünyanın en dağınık, umursamaz insanıdır)',
+      '10dur o ya',
+    ],
+    correctAnswer: '10dur o ya',
+  },
+  {
+    id: 7,
+    question: 'Merve’nin burcu ve yükseleni sırasıyla nedir?',
+    options: [
+      'Boğa-İkizler',
+      'İkizler-Başak',
+      'Boğa-Başak',
+      'Koç-Boğa',
+    ],
+    correctAnswer: 'Boğa-Başak',
+  },
+  {
+    id: 8,
+    question: 'Merve’nin en sevdiği içecek nedir?',
+    options: [
+      'Bira',
+      'Portakal suyu',
+      'Su',
+      'Americano',
+    ],
+    correctAnswer: 'Su',
+  },
+  {
+    id: 9,
+    question: 'Merve’nin yazın her öğün yiyebileceği tek şey nedir?',
+    options: [
+      'Domates-peynir',
+      'Karpuz-peynir',
+      'Çilek-erik',
+      'Soğuk sandviç',
+    ],
+    correctAnswer: 'Karpuz-peynir',
+  },
+  {
+    id: 10,
+    question: 'Merve’yi en çok sinirlendiren şey?',
+    options: [
+      'Lanlu lunlu konuşulması',
+      'Ekilmek',
+      'Ona yalan söylenilmesi',
+      'Açık olmayan iletişim',
+    ],
+    correctAnswer: 'Ona yalan söylenilmesi',
+  },
+]
+
 function App() {
   const [currentPage, setCurrentPage] = useState('welcome')
   const [selectedMood, setSelectedMood] = useState('')
@@ -26,6 +140,11 @@ function App() {
   const [wishlistType, setWishlistType] = useState('İstek')
   const [wishlistTerm, setWishlistTerm] = useState('Kısa vadeli')
   const [wishlistMessage, setWishlistMessage] = useState('')
+  const [quizAnswers, setQuizAnswers] = useState({})
+  const [currentQuizIndex, setCurrentQuizIndex] = useState(0)
+  const [checkedQuizIds, setCheckedQuizIds] = useState({})
+  const [quizMessage, setQuizMessage] = useState('')
+  const [showQuizResult, setShowQuizResult] = useState(false)
 
   async function fetchEntries() {
     const { data, error } = await supabase
@@ -147,6 +266,53 @@ function App() {
     setWishlistType('İstek')
     setWishlistTerm('Kısa vadeli')
     setWishlistMessage('Alanına eklendi güzelim.')
+  }
+
+  function handleQuizAnswer(questionId, answer) {
+    if (checkedQuizIds[questionId]) {
+      return
+    }
+
+    setQuizAnswers({
+      ...quizAnswers,
+      [questionId]: answer,
+    })
+
+    setQuizMessage('')
+  }
+
+  function handleQuizCheck(questionId) {
+    if (!quizAnswers[questionId]) {
+      setQuizMessage('Önce bir cevap seçmelisin 😌')
+      return
+    }
+
+    setCheckedQuizIds({
+      ...checkedQuizIds,
+      [questionId]: true,
+    })
+
+    setQuizMessage('')
+  }
+
+  function handleQuizNext() {
+    setQuizMessage('')
+
+    if (currentQuizIndex < quizQuestions.length - 1) {
+      setCurrentQuizIndex(currentQuizIndex + 1)
+    }
+  }
+
+  function handleShowQuizResult() {
+    setShowQuizResult(true)
+  }
+
+  function handleQuizRestart() {
+    setQuizAnswers({})
+    setCheckedQuizIds({})
+    setCurrentQuizIndex(0)
+    setQuizMessage('')
+    setShowQuizResult(false)
   }
 
   async function updateWishlistStatus(itemId, newStatus) {
@@ -295,6 +461,163 @@ function App() {
                   ))}
                 </div>
             )}
+          </section>
+        </main>
+    )
+  }
+
+  if (currentPage === 'quiz') {
+    return (
+        <main className="app">
+          <section className="page-card">
+            <button
+                className="back-button"
+                onClick={() => setCurrentPage('welcome')}
+            >
+              ← Geri
+            </button>
+
+            <p className="eyebrow">Quiz</p>
+
+            <h1>Beni ne kadar tanıyorsun?</h1>
+
+            <p className="description">
+              7 doğrunun altına düşersen bozuşuruz ona göre çöz.
+            </p>
+
+            <div className="quiz-list">
+              {(() => {
+                const currentQuiz = quizQuestions[currentQuizIndex]
+                const selectedAnswer = quizAnswers[currentQuiz.id]
+                const isChecked = checkedQuizIds[currentQuiz.id]
+                const isCorrect = selectedAnswer === currentQuiz.correctAnswer
+                const isLastQuestion = currentQuizIndex === quizQuestions.length - 1
+                const correctCount = quizQuestions.filter((quiz) => (
+                    quizAnswers[quiz.id] === quiz.correctAnswer
+                )).length
+
+                const wrongCount = quizQuestions.length - correctCount
+
+                if (showQuizResult) {
+                  return (
+                      <>
+                        <div className="quiz-result-card">
+                          <p className="eyebrow">Sonuç</p>
+
+                          <h2>
+                            {correctCount} doğru, {wrongCount} yanlış
+                          </h2>
+
+                          <p>
+                            {correctCount === quizQuestions.length
+                                ? 'Tam puan! Bu kadar bilmen biraz şov oldu 😌'
+                                : correctCount >= Math.ceil(quizQuestions.length / 2)
+                                    ? 'Hmm... bazı konuları tekrar çalışmamız gerekiyor gibi  😌'
+                                    : 'YAZIKLAR OLSUN'}
+                          </p>
+                        </div>
+
+                        <button
+                            className="secondary-button"
+                            onClick={handleQuizRestart}
+                        >
+                          Baştan başla
+                        </button>
+                      </>
+                  )
+                }
+
+                return (
+                    <>
+                      <div className="quiz-progress">
+                        Soru {currentQuizIndex + 1} / {quizQuestions.length}
+                      </div>
+
+                      <div className="quiz-card">
+                        <h2>{currentQuiz.question}</h2>
+
+                        <div className="quiz-options">
+                          {currentQuiz.options.map((option) => {
+                            let optionClassName = 'quiz-option'
+
+                            if (selectedAnswer === option) {
+                              optionClassName = 'quiz-option selected'
+                            }
+
+                            if (isChecked && option === currentQuiz.correctAnswer) {
+                              optionClassName = 'quiz-option correct'
+                            }
+
+                            if (
+                                isChecked &&
+                                selectedAnswer === option &&
+                                option !== currentQuiz.correctAnswer
+                            ) {
+                              optionClassName = 'quiz-option wrong'
+                            }
+
+                            return (
+                                <button
+                                    type="button"
+                                    key={option}
+                                    className={optionClassName}
+                                    onClick={() => handleQuizAnswer(currentQuiz.id, option)}
+                                >
+                                  {option}
+                                </button>
+                            )
+                          })}
+                        </div>
+
+                        {isChecked && isCorrect && (
+                            <p className="quiz-feedback">
+                              Bravo kız sana 😌
+                            </p>
+                        )}
+
+                        {isChecked && !isCorrect && (
+                            <p className="quiz-feedback">
+                              Püü sana: {currentQuiz.correctAnswer}
+                            </p>
+                        )}
+                      </div>
+
+                      {quizMessage && (
+                          <div className="soft-note">
+                            {quizMessage}
+                          </div>
+                      )}
+
+                      {!isChecked && (
+                          <button
+                              className="primary-button save-button"
+                              onClick={() => handleQuizCheck(currentQuiz.id)}
+                          >
+                            Kontrol et
+                          </button>
+                      )}
+
+                      {isChecked && !isLastQuestion && (
+                          <button
+                              className="primary-button save-button"
+                              onClick={handleQuizNext}
+                          >
+                            Sonraki soru
+                          </button>
+                      )}
+
+                      {isChecked && isLastQuestion && (
+                          <button
+                              className="primary-button save-button"
+                              onClick={handleShowQuizResult}
+                          >
+                            Sonucu gör
+                          </button>
+                      )}
+                    </>
+                )
+              })()}
+            </div>
           </section>
         </main>
     )
@@ -476,6 +799,13 @@ if (currentPage === 'wishlist') {
               onClick={() => setCurrentPage('history')}
           >
             Geçmişe bak
+          </button>
+
+          <button
+              className="secondary-button"
+              onClick={() => setCurrentPage('quiz')}
+          >
+            Quiz zamanı
           </button>
           
         </section>
