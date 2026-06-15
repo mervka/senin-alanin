@@ -136,6 +136,17 @@ const dailyMessagePool = [
   'Bugün kendini kötü hissedersen buraya dön. Bu alan biraz da bunun için var.',
   'Her gün mükemmel olmak zorunda değil. Ama her gün biraz kendin olman yeter.',
   'Bugünün mesajı: acele etme, bazı güzel şeyler yavaş yavaş oluyor.',
+  'Seninle ilgili en güzel şeylerden biri, varlığının bazı şeyleri daha kolay hissettirmesi.',
+  'Bugünün küçük notu: kendini ihmal etme.',
+  'Bugün bir şeyi kafana çok takarsan, önce nefes al. Sonra yine bakarız.',
+  'Bugün ne kadar yoğun olursa olsun, kendine ait minicik bir boşluk bırak.',
+  'Sen bazen kendi değerini unutuyorsun gibi geliyor. Ben unutmadım.',
+  'Bazı günler sadece geçsin isteriz. O günlerden biriyse, ben yine de yanındayım.',
+  'Bugün kendine biraz alan aç. Bu uygulamanın adı boşuna Senin Alanın değil.',
+  'Bugünün mesajı biraz basit ama gerçek: seni seviyorum.',
+  'Bir şey seni üzüyorsa küçümseme. Hissettiğin şey önemli.',
+  'Kendine kızmadan önce, ne kadar uğraştığını da hatırla.',
+  'Bugün kendine küçük bir iyilik yap. Büyük olmak zorunda değil.',
 ]
 
 function App() {
@@ -156,11 +167,13 @@ function App() {
   const [wishlistType, setWishlistType] = useState('İstek')
   const [wishlistTerm, setWishlistTerm] = useState('Kısa vadeli')
   const [wishlistMessage, setWishlistMessage] = useState('')
+  const [itemToDelete, setItemToDelete] = useState(null)
   const [quizAnswers, setQuizAnswers] = useState({})
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0)
   const [checkedQuizIds, setCheckedQuizIds] = useState({})
   const [quizMessage, setQuizMessage] = useState('')
   const [showQuizResult, setShowQuizResult] = useState(false)
+  
 
   async function fetchEntries() {
     const { data, error } = await supabase
@@ -440,6 +453,25 @@ function App() {
                 : item
         )
     )
+  }
+
+  async function deleteWishlistItem() {
+    if (!itemToDelete) {
+      return
+    }
+
+    const { error } = await supabase
+        .from('wishlist_items')
+        .delete()
+        .eq('id', itemToDelete.id)
+
+    if (error) {
+      setWishlistMessage('Silinirken bir sorun oldu.')
+      return
+    }
+
+    setWishlistItems(wishlistItems.filter((item) => item.id !== itemToDelete.id))
+    setItemToDelete(null)
   }
 
   if (currentPage === 'today') {
@@ -855,74 +887,234 @@ if (currentPage === 'wishlist') {
             Wishlist’e ekle
           </button>
 
+          <div className="wishlist-actions">
+            <button
+                className="secondary-button"
+                onClick={() => setCurrentPage('wishes')}
+            >
+              İstekler
+            </button>
+
+            <button
+                className="secondary-button"
+                onClick={() => setCurrentPage('plans')}
+            >
+              Planlar
+            </button>
+          </div>
+          
+          
+
           {wishlistMessage && (
               <div className="soft-note">
                 {wishlistMessage}
               </div>
           )}
-
-          {wishlistItems.filter((item) => item.type === 'İstek').length > 0 && (
-              <div className="wishlist-list">
-                <h2>İstekler</h2>
-
-                {wishlistItems
-                    .filter((item) => item.type === 'İstek')
-                    .map((item) => (
-                        <article className="wishlist-card" key={item.id}>
-                          <strong>{item.title}</strong>
-                          <small>{item.term}</small>
-
-                          <label className="status-label">
-                            Durum
-                            <select
-                                className="status-select"
-                                value={item.status}
-                                onChange={(event) => updateWishlistStatus(item.id, event.target.value)}
-                            >
-                              <option value="Aklımda">Aklımda</option>
-                              <option value="Başlandı">Başlandı</option>
-                              <option value="Tamamlandı">Tamamlandı</option>
-                            </select>
-                          </label>
-                        </article>
-                    ))}
-              </div>
-          )}
-
-          {wishlistItems.filter((item) => item.type === 'Plan').length > 0 && (
-              <div className="wishlist-list">
-                <h2>Planlar</h2>
-
-                {wishlistItems
-                    .filter((item) => item.type === 'Plan')
-                    .map((item) => (
-                        <article className="wishlist-card" key={item.id}>
-                          <strong>{item.title}</strong>
-                          <small>{item.term}</small>
-
-                          <label className="status-label">
-                            Durum
-                            <select
-                                className="status-select"
-                                value={item.status}
-                                onChange={(event) => updateWishlistStatus(item.id, event.target.value)}
-                            >
-                              <option value="Aklımda">Aklımda</option>
-                              <option value="Başlandı">Başlandı</option>
-                              <option value="Tamamlandı">Tamamlandı</option>
-                            </select>
-                          </label>
-                        </article>
-                    ))}
-              </div>
-          )}
-          
         </section>
       </main>
   )
 }
 
+  if (currentPage === 'wishes') {
+    const wishes = wishlistItems.filter((item) => item.type === 'İstek')
 
+    return (
+        <main className="app">
+          <div className="page-content">
+            <button
+                className="back-button"
+                onClick={() => {
+                  setItemToDelete(null)
+                  setCurrentPage('wishlist')
+                }}
+            >
+              ← Geri
+            </button>
+
+            <p className="eyebrow">İSTEKLER</p>
+
+            <h1>İstek listesi</h1>
+
+            <p className="subtitle">
+              Burada sadece istek olarak kaydedilenler görünecek.
+            </p>
+
+            <div className="wishlist-list">
+              {wishes.length === 0 ? (
+                  <p className="soft-note">
+                    Henüz istek eklenmemiş.
+                  </p>
+              ) : (
+                  wishes.map((item) => (
+                      <article className="wishlist-card" key={item.id}>
+                        <div className="wishlist-card-header">
+                          <div>
+                            <h2>{item.title}</h2>
+
+                            {item.note && (
+                                <p>{item.note}</p>
+                            )}
+
+                            <small>{item.term}</small>
+                          </div>
+                        </div>
+
+                        <label className="status-label">
+                          <span>Durum</span>
+
+                          <select
+                              className="status-select"
+                              value={item.status}
+                              onChange={(event) => updateWishlistStatus(item.id, event.target.value)}
+                          >
+                            <option value="Aklımda">Aklımda</option>
+                            <option value="Başlandı">Başlandı</option>
+                            <option value="Tamamlandı">Tamamlandı</option>
+                          </select>
+                        </label>
+
+                        <button
+                            className="delete-button"
+                            onClick={() => setItemToDelete(item)}
+                        >
+                          Sil
+                        </button>
+                      </article>
+                  ))
+              )}
+            </div>
+            {itemToDelete && (
+                <div className="confirm-overlay">
+                  <div className="confirm-box">
+                    <h2>Elveda mı diyoruz?</h2>
+
+                    <p>
+                      “{itemToDelete.title}” listeden silinsin mi?
+                    </p>
+
+                    <div className="confirm-actions">
+                      <button
+                          className="secondary-button"
+                          onClick={() => setItemToDelete(null)}
+                      >
+                        Hayır
+                      </button>
+
+                      <button
+                          className="primary-button"
+                          onClick={deleteWishlistItem}
+                      >
+                        Evet
+                      </button>
+                    </div>
+                  </div>
+                </div>
+            )}
+          </div>
+        </main>
+    )
+  }
+
+  if (currentPage === 'plans') {
+    const plans = wishlistItems.filter((item) => item.type === 'Plan')
+
+    return (
+        <main className="app">
+          <div className="page-content">
+            <button
+                className="back-button"
+                onClick={() => {
+                  setItemToDelete(null)
+                  setCurrentPage('wishlist')
+                }}
+            >
+              ← Geri
+            </button>
+
+            <p className="eyebrow">PLANLAR</p>
+
+            <h1>Plan listesi</h1>
+
+            <p className="subtitle">
+              Burada sadece plan olarak kaydedilenler görünecek.
+            </p>
+
+            <div className="wishlist-list">
+              {plans.length === 0 ? (
+                  <p className="soft-note">
+                    Henüz plan eklenmemiş.
+                  </p>
+              ) : (
+                  plans.map((item) => (
+                      <article className="wishlist-card" key={item.id}>
+                        <div className="wishlist-card-header">
+                          <div>
+                            <h2>{item.title}</h2>
+
+                            {item.note && (
+                                <p>{item.note}</p>
+                            )}
+
+                            <small>{item.term}</small>
+                          </div>
+                        </div>
+
+                        <label className="status-label">
+                          <span>Durum</span>
+
+                          <select
+                              className="status-select"
+                              value={item.status}
+                              onChange={(event) => updateWishlistStatus(item.id, event.target.value)}
+                          >
+                            <option value="Aklımda">Aklımda</option>
+                            <option value="Başlandı">Başlandı</option>
+                            <option value="Tamamlandı">Tamamlandı</option>
+                          </select>
+                        </label>
+
+                        <button
+                            className="delete-button"
+                            onClick={() => setItemToDelete(item)}
+                        >
+                          Sil
+                        </button>
+                      </article>
+                  ))
+              )}
+            </div>
+            {itemToDelete && (
+                <div className="confirm-overlay">
+                  <div className="confirm-box">
+                    <h2>Elveda mı diyoruz?</h2>
+
+                    <p>
+                      “{itemToDelete.title}” listeden silinsin mi?
+                    </p>
+
+                    <div className="confirm-actions">
+                      <button
+                          className="secondary-button"
+                          onClick={() => setItemToDelete(null)}
+                      >
+                        Hayır
+                      </button>
+
+                      <button
+                          className="primary-button"
+                          onClick={deleteWishlistItem}
+                      >
+                        Evet
+                      </button>
+                    </div>
+                  </div>
+                </div>
+            )}
+          </div>
+        </main>
+    )
+  }
+  
   return (
       <main className="app">
         <section className="welcome-card">
