@@ -1126,7 +1126,7 @@ h1,
   content: "ÇaçoşLog";
   position: fixed;
   top: 18px;
-  right: 22px;
+  right: max(22px, calc((100vw - 430px) / 2 + 22px));
   z-index: 950;
 
   color: var(--nav);
