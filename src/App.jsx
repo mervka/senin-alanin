@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
+import {
+  Home,
+  Sun,
+  Star,
+  MessageCircle,
+  CircleHelp,
+  Clock3,
+} from 'lucide-react'
 import './App.css'
 import { supabase } from './supabaseClient'
+
 
 const moods = [
   { label: 'Mutlu', emoji: '🌞' },
@@ -17,7 +26,7 @@ const quizQuestions = [
     question: 'Merve bir şeye çok heveslendiyse büyük ihtimalle ne olur?',
     options: [
       'Sakin sakin zamanının gelmesini bekler',
-      'Önce 48 sekme açar, sonra “yaparız ya” der',
+      'Önce 48 sekme açar, sonra “ben bunu yaparım ya” der',
       'Hiç bahsetmez',
       'Konuyu unutur',
     ],
@@ -59,14 +68,14 @@ const quizQuestions = [
   },
   {
     id: 5,
-    question: 'Merve’nin bu hayattaki gizli nihai amacı nedir?',
+    question: 'Merve’nin bu hayattaki nihai amacı nedir?',
     options: [
-      'Dünyayı kurtarmak',
+      'Feminist devrim',
       'Estetik, konfor, lezzetli yemekler ve huzur dolu bir krallık kurup keyif yapmak',
       'Çok çalışmak çok üretmek',
       'Ölmek',
     ],
-    correctAnswer: 'Dünyayı kurtarmak',
+    correctAnswer: 'Feminist devrim',
   },
   {
     id: 6,
@@ -103,7 +112,7 @@ const quizQuestions = [
   },
   {
     id: 9,
-    question: 'Merve’nin yazın her öğün yiyebileceği tek şey nedir?',
+    question: 'Merve’nin yazın her öğün yiyebileceği şey nedir?',
     options: [
       'Domates-peynir',
       'Karpuz-peynir',
@@ -123,6 +132,62 @@ const quizQuestions = [
     ],
     correctAnswer: 'Ona yalan söylenilmesi',
   },
+  {
+    id: 11,
+    question: 'Merve’nin yapmaktan en çok keyif aldığı spor nedir?',
+    options: [
+      'Koşu',
+      'Doğa yürüyüşü',
+      'Pilates',
+      'Yüzmek',
+    ],
+    correctAnswer: 'Yüzmek',
+  },
+  {
+    id: 12,
+    question: 'Merve’yi ikili iletişimde en çok rahatsız eden şey nedir?',
+    options: [
+      'Karşısındaki insanın çok konuşması',
+      'Sürekli sözünün kesilmesi',
+      'Tepkisiz dinlenilmesi',
+      'Sürekli laf sokulması',
+    ],
+    correctAnswer: 'Sürekli sözünün kesilmesi',
+  },
+  {
+    id: 13,
+    question: 'Merve’yi en çok güldüren şey nedir?',
+    options: [
+      'Gözü önünde yere düşülmesi',
+      'Küçük çocukların anlamsız hareketleri',
+      'Çabasız komik olan insanlar',
+      'Şive',
+    ],
+    correctAnswer: 'Çabasız komik olan insanlar',
+  },
+  {
+    id: 14,
+    question: 'Merve’yi en çok üzen şey nedir?',
+    options: [
+      'Planlarının bozulması',
+      'Hayvanları kötü durumda görmek',
+      'Ona küsülmesi',
+      'Sevdiklerinin anlaşamaması',
+    ],
+    correctAnswer: 'Hayvanları kötü durumda görmek',
+  },
+  {
+    id: 15,
+    question: 'Merve’nin en çok ilgisini çeken sosyal bilim nedir?',
+    options: [
+      'Siyaset bilimi',
+      'Coğrafya',
+      'Tarih',
+      'Sosyoloji',
+    ],
+    correctAnswer: 'Tarih',
+  },
+    
 ]
 
 const dailyMessagePool = [
@@ -159,6 +224,9 @@ function App() {
   const [dailyMessage, setDailyMessage] = useState('')
   const [dailyMessageLoading, setDailyMessageLoading] = useState(false)
   const [dailyMessageError, setDailyMessageError] = useState('')
+  const [expandedWishlistItemId, setExpandedWishlistItemId] = useState(null)
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null)
+  const [entryToDelete, setEntryToDelete] = useState(null)
   
   
 
@@ -239,21 +307,16 @@ function App() {
       setMessage('Bugünden geriye kalacak en az bir cümle bırakalım.')
       return
     }
-    const newEntry = {
-      id: Date.now(),
-      mood: selectedMood,
-      rating,
-      thought,
-      createdAt: new Date().toLocaleString('tr-TR'),
-    }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('entries')
         .insert({
           mood: selectedMood,
-          rating: Number(rating),
+          rating: rating,
           thought: thought,
         })
+        .select()
+        .single()
 
     if (error) {
       console.error('Supabase kayıt hatası:', error)
@@ -261,9 +324,18 @@ function App() {
       return
     }
 
+    setEntries([data, ...entries])
     await fetchEntries()
     setMessage('Kaydettim. Bugünün burada güvende.')
     setThought('')
+  }
+
+  function getShortWishlistTitle(title) {
+    if (title.length <= 45) {
+      return title
+    }
+
+    return title.slice(0, 45) + '...'
   }
 
   async function handleWishlistSave() {
@@ -348,6 +420,66 @@ function App() {
     setCurrentQuizIndex(0)
     setQuizMessage('')
     setShowQuizResult(false)
+  }
+
+  function BottomNavigation({ activePage }) {
+    return (
+        <nav className="bottom-nav">
+          <button
+              className={activePage === 'welcome' ? 'active' : ''}
+              onClick={() => setCurrentPage('welcome')}
+          >
+            <Home />
+            <small>Ana</small>
+          </button>
+
+          <button
+              className={activePage === 'today' ? 'active' : ''}
+              onClick={() => setCurrentPage('today')}
+          >
+            <Sun />
+            <small>Bugün</small>
+          </button>
+
+          <button
+              className={
+                activePage === 'wishlist' ||
+                activePage === 'wishes' ||
+                activePage === 'plans'
+                    ? 'active'
+                    : ''
+              }
+              onClick={() => setCurrentPage('wishlist')}
+          >
+            <Star />
+            <small>Liste</small>
+          </button>
+
+          <button
+              className={activePage === 'dailyMessage' ? 'active' : ''}
+              onClick={() => setCurrentPage('dailyMessage')}
+          >
+            <MessageCircle />
+            <small>Mesaj</small>
+          </button>
+
+          <button
+              className={activePage === 'quiz' ? 'active' : ''}
+              onClick={() => setCurrentPage('quiz')}
+          >
+            <CircleHelp />
+            <small>Quiz</small>
+          </button>
+
+          <button
+              className={activePage === 'history' ? 'active' : ''}
+              onClick={() => setCurrentPage('history')}
+          >
+            <Clock3 />
+            <small>Geçmiş</small>
+          </button>
+        </nav>
+    )
   }
 
   function getTodayDate() {
@@ -474,6 +606,21 @@ function App() {
     setItemToDelete(null)
   }
 
+  async function deleteEntry(entryId) {
+    const { error } = await supabase
+        .from('entries')
+        .delete()
+        .eq('id', entryId)
+
+    if (error) {
+      console.error('History silme hatası:', error)
+      return
+    }
+
+    setEntries(entries.filter((entry) => entry.id !== entryId))
+    setEntryToDelete(null)
+  }
+
   if (currentPage === 'today') {
     
     return (
@@ -488,15 +635,16 @@ function App() {
 
             <p className="eyebrow">Bugün</p>
 
-            <h1>Bugünü buraya nasıl bırakmak istersin?</h1>
+            <h1>Bugün buraya ne bırakmak istersin?</h1>
 
             <p className="description">
-              Önce bugünün hissini seç. Sonra içinden geçenleri buraya bırak.
+              Bugünün hissini seç ve güne bir puan ver. Sonra içinden geçenleri buraya bırak.
             </p>
+            
+            
 
             <div className="form-section">
-              <h2>Bugünün hissi</h2>
-
+              
               <div className="mood-grid">
                 {moods.map((mood) => (
                     <button
@@ -517,7 +665,6 @@ function App() {
 
             <div className="form-section">
               <div className="rating-header">
-                <h2>Günün puanı</h2>
                 <strong>{rating}/10</strong>
               </div>
 
@@ -532,7 +679,6 @@ function App() {
             </div>
 
             <div className="form-section">
-              <h2>İçinden geçenler</h2>
 
               <textarea
                   className="text-area"
@@ -554,6 +700,7 @@ function App() {
                 </div>
             )}
           </section>
+          <BottomNavigation activePage="today" />
         </main>
     )
   }
@@ -592,14 +739,66 @@ function App() {
                           <span>{entry.rating}/10</span>
                         </div>
 
-                        <p>{entry.thought}</p>
+                        <p
+                            className={
+                              expandedHistoryId === entry.id
+                                  ? 'history-thought expanded'
+                                  : 'history-thought'
+                            }
+                            onClick={() =>
+                                setExpandedHistoryId(expandedHistoryId === entry.id ? null : entry.id)
+                            }
+                        >
+                          {expandedHistoryId === entry.id
+                              ? entry.thought
+                              : entry.thought.length > 55
+                                  ? `${entry.thought.slice(0, 55)}...`
+                                  : entry.thought}
+                        </p>
 
                         <small>{entry.createdAt}</small>
+
+                        <button
+                            className="history-delete-button"
+                            onClick={() => setEntryToDelete(entry)}
+                        >
+                          Sil
+                        </button>
                       </article>
                   ))}
                 </div>
             )}
           </section>
+          {entryToDelete && (
+              <div className="confirm-overlay">
+                <div className="confirm-box">
+                  <h2>Elveda mı diyoruz?</h2>
+
+                  <p>
+                    “{entryToDelete.thought.length > 28
+                      ? `${entryToDelete.thought.slice(0, 28)}...`
+                      : entryToDelete.thought}” kayıtlardan silinsin mi?
+                  </p>
+
+                  <div className="confirm-actions">
+                    <button
+                        className="secondary-button"
+                        onClick={() => setEntryToDelete(null)}
+                    >
+                      Hayır
+                    </button>
+
+                    <button
+                        className="primary-button"
+                        onClick={() => deleteEntry(entryToDelete.id)}
+                    >
+                      Evet
+                    </button>
+                  </div>
+                </div>
+              </div>
+          )}
+          <BottomNavigation activePage="history" />
         </main>
     )
   }
@@ -648,6 +847,7 @@ function App() {
                       : 'Bugünün mesajını aç'}
             </button>
           </section>
+          <BottomNavigation activePage="dailyMessage" />
         </main>
     )
   }
@@ -805,6 +1005,7 @@ function App() {
               })()}
             </div>
           </section>
+          <BottomNavigation activePage="quiz" />
         </main>
     )
   }
@@ -820,97 +1021,103 @@ if (currentPage === 'wishlist') {
             ← Geri
           </button>
 
-          <p className="eyebrow">Wishlist</p>
+          <p className="eyebrow">WISHLIST</p>
 
           <h1>Yaz Gülüm Hayallerini Yaz</h1>
 
           <p className="description">
-            Kısa vadeli planlarını, uzun vadeli hayallerini ya da bir gün
-            birlikte yapmak istediklerinizi buraya yazabilirsin.
+            Kısa vadeli planlarını, uzun vadeli hayallerini ya da bir gün birlikte
+            yapmak istediklerinizi buraya yazabilirsin.
           </p>
 
           <div className="form-section">
-            <h2>Ne eklemek istiyorsun?</h2>
 
-            <div className="option-row compact-options">
-              {['İstek', 'Plan'].map((type) => (
-                  <button
-                      key={type}
-                      className={
-                        wishlistType === type
-                            ? 'option-button selected'
-                            : 'option-button'
-                      }
-                      onClick={() => setWishlistType(type)}
-                  >
-                    {type}
-                  </button>
-              ))}
+            <div className="wishlist-type-grid">
+              <button
+                  type="button"
+                  className={wishlistType === 'İstek' ? 'option-button selected' : 'option-button'}
+                  onClick={() => setWishlistType('İstek')}
+              >
+                İstek
+              </button>
+
+              <button
+                  type="button"
+                  className={wishlistType === 'Plan' ? 'option-button selected' : 'option-button'}
+                  onClick={() => setWishlistType('Plan')}
+              >
+                Plan
+              </button>
             </div>
+          </div>
 
+          <div className="form-section wishlist-time-section">
+
+            <div className="wishlist-term-grid">
+              <button
+                  type="button"
+                  className={wishlistTerm === 'Kısa vadeli' ? 'option-button selected' : 'option-button'}
+                  onClick={() => setWishlistTerm('Kısa vadeli')}
+              >
+                Kısa vadeli
+              </button>
+
+              <button
+                  type="button"
+                  className={wishlistTerm === 'Uzun vadeli' ? 'option-button selected' : 'option-button'}
+                  onClick={() => setWishlistTerm('Uzun vadeli')}
+              >
+                Uzun vadeli
+              </button>
+            </div>
+          </div>
+
+          <div className="wishlist-add-row">
             <input
-                className="text-input"
+                className="text-input wishlist-main-input"
                 value={wishlistTitle}
                 onChange={(event) => setWishlistTitle(event.target.value)}
                 placeholder={
                   wishlistType === 'İstek'
-                      ? 'Hayata veya kendine dair isteklerini yaz...'
-                      : 'Birlikte ya da kendin için yapmak istediğin planı yaz...'
+                      ? 'Hayata veya kendine dair isteklerin...'
+                      : 'Birlikte ya da kendin için yapmak istediğin planlar...'
                 }
             />
 
-            <div className="form-section">
-              <h2>Zamanı</h2>
-
-              <div className="option-row compact-options">
-                {['Kısa vadeli', 'Uzun vadeli'].map((term) => (
-                    <button
-                        key={term}
-                        className={
-                          wishlistTerm === term
-                              ? 'option-button selected'
-                              : 'option-button'
-                        }
-                        onClick={() => setWishlistTerm(term)}
-                    >
-                      {term}
-                    </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <button
-              className="primary-button save-button"
-              onClick={handleWishlistSave}
-          >
-            Wishlist’e ekle
-          </button>
-
-          <div className="wishlist-actions">
             <button
-                className="secondary-button"
-                onClick={() => setCurrentPage('wishes')}
+                className="wishlist-plus-button"
+                onClick={handleWishlistSave}
+                type="button"
             >
-              İstekler
-            </button>
-
-            <button
-                className="secondary-button"
-                onClick={() => setCurrentPage('plans')}
-            >
-              Planlar
+              +
             </button>
           </div>
-          
           
 
           {wishlistMessage && (
-              <div className="soft-note">
+              <p className="soft-note">
                 {wishlistMessage}
-              </div>
+              </p>
           )}
+
+          <div className="wishlist-bottom-links">
+            <button
+                type="button"
+                onClick={() => setCurrentPage('wishes')}
+            >
+              İstekler <span>→</span>
+            </button>
+
+            <button
+                type="button"
+                onClick={() => setCurrentPage('plans')}
+            >
+              Planlar <span>→</span>
+            </button>
+          </div>
         </section>
+
+        <BottomNavigation activePage="wishlist" />
       </main>
   )
 }
@@ -919,7 +1126,7 @@ if (currentPage === 'wishlist') {
     const wishes = wishlistItems.filter((item) => item.type === 'İstek')
 
     return (
-        <main className="app">
+        <main className="app list-page-shell">
           <div className="page-content">
             <button
                 className="back-button"
@@ -949,7 +1156,19 @@ if (currentPage === 'wishlist') {
                       <article className="wishlist-card" key={item.id}>
                         <div className="wishlist-card-header">
                           <div>
-                            <h2>{item.title}</h2>
+                            <button
+                                type="button"
+                                className="wishlist-title-button"
+                                onClick={() =>
+                                    setExpandedWishlistItemId(
+                                        expandedWishlistItemId === item.id ? null : item.id
+                                    )
+                                }
+                            >
+                              {expandedWishlistItemId === item.id
+                                  ? item.title
+                                  : getShortWishlistTitle(item.title)}
+                            </button>
 
                             {item.note && (
                                 <p>{item.note}</p>
@@ -1011,6 +1230,7 @@ if (currentPage === 'wishlist') {
                 </div>
             )}
           </div>
+          <BottomNavigation activePage="wishes" />
         </main>
     )
   }
@@ -1019,7 +1239,7 @@ if (currentPage === 'wishlist') {
     const plans = wishlistItems.filter((item) => item.type === 'Plan')
 
     return (
-        <main className="app">
+        <main className="app list-page-shell">
           <div className="page-content">
             <button
                 className="back-button"
@@ -1049,7 +1269,19 @@ if (currentPage === 'wishlist') {
                       <article className="wishlist-card" key={item.id}>
                         <div className="wishlist-card-header">
                           <div>
-                            <h2>{item.title}</h2>
+                            <button
+                                type="button"
+                                className="wishlist-title-button"
+                                onClick={() =>
+                                    setExpandedWishlistItemId(
+                                        expandedWishlistItemId === item.id ? null : item.id
+                                    )
+                                }
+                            >
+                              {expandedWishlistItemId === item.id
+                                  ? item.title
+                                  : getShortWishlistTitle(item.title)}
+                            </button>
 
                             {item.note && (
                                 <p>{item.note}</p>
@@ -1111,57 +1343,127 @@ if (currentPage === 'wishlist') {
                 </div>
             )}
           </div>
+          <BottomNavigation activePage="plans" />
         </main>
     )
   }
-  
+
+  const todayDateValue = getTodayDate()
+
+  const todayDateTr = new Date().toLocaleDateString('tr-TR')
+
+  function getEntryDateForCompare(entry) {
+    if (entry.created_at) {
+      return entry.created_at.slice(0, 10)
+    }
+
+    if (entry.createdAt) {
+      return entry.createdAt.slice(0, 10)
+    }
+
+    return ''
+  }
+
+  function getEntryTimeValue(entry) {
+    if (entry.created_at) {
+      return new Date(entry.created_at).getTime()
+    }
+
+    if (entry.createdAt) {
+      const [datePart, timePart] = entry.createdAt.split(' ')
+      const [day, month, year] = datePart.split('.')
+
+      return new Date(`${year}-${month}-${day}T${timePart}`).getTime()
+    }
+
+    return 0
+  }
+
+  const todayEntries = entries
+      .filter((entry) => (
+          getEntryDateForCompare(entry) === todayDateValue ||
+          getEntryDateForCompare(entry) === todayDateTr
+      ))
+      .sort((firstEntry, secondEntry) => (
+          getEntryTimeValue(secondEntry) - getEntryTimeValue(firstEntry)
+      ))
+
+  const todayEntry = todayEntries[0]
+
+  const todayDateLabel = new Date().toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'long',
+  }).toLocaleUpperCase('tr-TR')
+
+  const todayDayName = new Date().toLocaleDateString('tr-TR', {
+    weekday: 'long',
+  })
+
+  const formattedTodayDayName =
+      todayDayName.charAt(0).toLocaleUpperCase('tr-TR') + todayDayName.slice(1)
+
   return (
-      <main className="app">
-        <section className="welcome-card">
-          <p className="eyebrow">Senin Alanın</p>
+      <main className="app minimal-home-shell">
+        <section className="minimal-home">
+          <p className="minimal-date">{todayDateLabel}</p>
 
-          <h1>Bugün ne hissediyorsan, burada güvenle kalabilir.</h1>
+          <h1 className="minimal-day-title">{formattedTodayDayName}</h1>
 
-          <p className="description">
-            Burası sadece sana ait küçük bir alan. Gününü, içinden geçenleri,
-            isteklerini ve hayallerini yargısızca buraya bırakabilirsin.
-          </p>
-
-          <button
-              className="primary-button"
+          <section
+              className="minimal-today-card"
               onClick={() => setCurrentPage('today')}
           >
-            Bugünün kapısını aç
-          </button>
-          <button
-              className="secondary-button"
-              onClick={() => setCurrentPage('wishlist')}
-          >
-            Wishlist alanına geç
-          </button>
+            {!todayEntry ? (
+                <>
+                  <p>Bugünü henüz kaydetmedin</p>
+                  <button>
+                    Nasıl hissediyorsun? →
+                  </button>
+                </>
+            ) : (
+                <>
+                  <p>Bugün kaydedildi</p>
 
-          <button
-              className="secondary-button"
-              onClick={() => setCurrentPage('history')}
-          >
-            Geçmişe bak
-          </button>
+                  <div className="home-entry-summary">
+                    <strong>{todayEntry.rating}</strong>
 
-          <button
-              className="secondary-button"
-              onClick={() => setCurrentPage('quiz')}
-          >
-            Quiz zamanı
-          </button>
+                    <div>
+                      <span>{todayEntry.mood}</span>
+                      <small>{todayEntry.rating}/10 puan</small>
+                    </div>
+                  </div>
+                </>
+            )}
+          </section>
 
-          <button
-              className="secondary-button"
-              onClick={() => setCurrentPage('dailyMessage')}
-          >
-            Günün mesajı
-          </button>
-          
+          <section className="minimal-menu-grid">
+            <button onClick={() => setCurrentPage('wishlist')}>
+              <span>Hayaller</span>
+              <small>Planlar & İstekler</small>
+            </button>
+
+            <button onClick={() => setCurrentPage('dailyMessage')}>
+              <span>Mesajım</span>
+              <small>Bugüne özel</small>
+            </button>
+
+            <button onClick={() => setCurrentPage('quiz')}>
+              <span>Quiz</span>
+              <small>Beni ne kadar tanıyorsun?</small>
+            </button>
+
+            <button onClick={() => setCurrentPage('history')}>
+              <span>Geçmiş</span>
+              <small>{entries.length} kayıt</small>
+            </button>
+          </section>
+
+          <p className="minimal-footer-text">
+            Seninle her gün
+          </p>
         </section>
+
+        <BottomNavigation activePage="welcome" />
       </main>
   )
 }
