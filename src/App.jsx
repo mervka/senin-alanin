@@ -6,6 +6,7 @@ import {
   MessageCircle,
   CircleHelp,
   Clock3,
+  Power,
 } from 'lucide-react'
 import './App.css'
 import { supabase } from './supabaseClient'
@@ -215,6 +216,11 @@ const dailyMessagePool = [
 ]
 
 function App() {
+  const [accessMode, setAccessMode] = useState(null)
+  const [showLogin, setShowLogin] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loginMessage, setLoginMessage] = useState('')
   const [currentPage, setCurrentPage] = useState('welcome')
   const [selectedMood, setSelectedMood] = useState('')
   const [rating, setRating] = useState(5)
@@ -241,9 +247,26 @@ function App() {
   const [checkedQuizIds, setCheckedQuizIds] = useState({})
   const [quizMessage, setQuizMessage] = useState('')
   const [showQuizResult, setShowQuizResult] = useState(false)
-  
+
 
   async function fetchEntries() {
+    if (accessMode === 'demo') {
+      const savedEntries = JSON.parse(
+          localStorage.getItem('demo_entries') || '[]'
+      )
+
+      const formattedEntries = savedEntries.map((entry) => ({
+        id: entry.id,
+        mood: entry.mood,
+        rating: entry.rating,
+        thought: entry.thought,
+        createdAt: new Date(entry.created_at).toLocaleString('tr-TR'),
+      }))
+
+      setEntries(formattedEntries)
+      return
+    }
+
     const { data, error } = await supabase
         .from('entries')
         .select('*')
@@ -266,6 +289,15 @@ function App() {
   }
 
   async function fetchWishlistItems() {
+    if (accessMode === 'demo') {
+      const savedItems = JSON.parse(
+          localStorage.getItem('demo_wishlist_items') || '[]'
+      )
+
+      setWishlistItems(savedItems)
+      return
+    }
+
     const { data, error } = await supabase
         .from('wishlist_items')
         .select('*')
@@ -288,8 +320,27 @@ function App() {
   }
 
   useEffect(() => {
-    fetchEntries()
-    fetchWishlistItems()
+    if (accessMode === 'private') {
+      fetchEntries()
+      fetchWishlistItems()
+    }
+
+    if (accessMode === 'demo') {
+      fetchEntries()
+      fetchWishlistItems()
+    }
+  }, [accessMode])
+
+  useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession()
+
+      if (data.session) {
+        setAccessMode('private')
+      }
+    }
+
+    checkSession()
   }, [])
 
   useEffect(() => {
@@ -298,6 +349,111 @@ function App() {
     }
   }, [currentPage])
 
+  async function handleLogin() {
+    setLoginMessage('')
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      setLoginMessage('E-posta veya şifre hatalı.')
+      return
+    }
+
+    setAccessMode('private')
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+
+    setAccessMode(null)
+    setShowLogin(false)
+    setEmail('')
+    setPassword('')
+    setEntries([])
+    setWishlistItems([])
+    setDailyMessage('')
+    setCurrentPage('welcome')
+  }
+
+  function handleExitDemo() {
+    setAccessMode(null)
+    setEntries([])
+    setWishlistItems([])
+    setDailyMessage('')
+    setCurrentPage('welcome')
+  }
+
+  if (accessMode === null) {
+    return (
+        <main className="app access-screen">
+          <section className="page-card access-card">
+            <h1>Burası sana ait küçük bir alan.</h1>
+
+            {!showLogin && (
+                <>
+                  <button
+                      className="primary-button"
+                      onClick={() => setShowLogin(true)}
+                  >
+                    Alana gir
+                  </button>
+
+                  <button
+                      className="secondary-button"
+                      onClick={() => setAccessMode('demo')}
+                  >
+                    Demo olarak keşfet
+                  </button>
+                </>
+            )}
+
+            {showLogin && (
+                <div className="form-section">
+                  <input
+                      className="text-input"
+                      type="email"
+                      placeholder="E-posta"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                  />
+
+                  <input
+                      className="text-input"
+                      type="password"
+                      placeholder="Şifre"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                  />
+
+                  <button
+                      className="primary-button"
+                      onClick={handleLogin}
+                  >
+                    Giriş yap
+                  </button>
+
+                  <button
+                      className="secondary-button"
+                      onClick={() => setShowLogin(false)}
+                  >
+                    Geri
+                  </button>
+
+                  {loginMessage && (
+                      <p className="soft-note">
+                        {loginMessage}
+                      </p>
+                  )}
+                </div>
+            )}
+          </section>
+        </main>
+    )
+  }
+
   async function handleSave() {
     if (!selectedMood) {
       setMessage('Önce bugünün hissini seçelim.')
@@ -305,6 +461,33 @@ function App() {
     }
     if (!thought.trim()) {
       setMessage('Bugünden geriye kalacak en az bir cümle bırakalım.')
+      return
+    }
+
+    if (accessMode === 'demo') {
+      const savedEntries = JSON.parse(
+          localStorage.getItem('demo_entries') || '[]'
+      )
+
+      const newEntry = {
+        id: Date.now(),
+        mood: selectedMood,
+        rating: rating,
+        thought: thought,
+        created_at: new Date().toISOString(),
+      }
+
+      const updatedEntries = [newEntry, ...savedEntries]
+
+      localStorage.setItem(
+          'demo_entries',
+          JSON.stringify(updatedEntries)
+      )
+
+      await fetchEntries()
+
+      setMessage('Demo kaydın bu cihazda saklandı.')
+      setThought('')
       return
     }
 
@@ -341,6 +524,35 @@ function App() {
   async function handleWishlistSave() {
     if (!wishlistTitle.trim()) {
       setWishlistMessage('Önce küçük de olsa bir istek ya da hayal yazalım.')
+      return
+    }
+
+    if (accessMode === 'demo') {
+      const savedItems = JSON.parse(
+          localStorage.getItem('demo_wishlist_items') || '[]'
+      )
+
+      const newItem = {
+        id: Date.now(),
+        title: wishlistTitle,
+        type: wishlistType,
+        term: wishlistTerm,
+        status: 'Aklımda',
+      }
+
+      const updatedItems = [newItem, ...savedItems]
+
+      localStorage.setItem(
+          'demo_wishlist_items',
+          JSON.stringify(updatedItems)
+      )
+
+      await fetchWishlistItems()
+
+      setWishlistTitle('')
+      setWishlistType('İstek')
+      setWishlistTerm('Kısa vadeli')
+      setWishlistMessage('Demo listene eklendi.')
       return
     }
 
@@ -491,6 +703,24 @@ function App() {
 
     setDailyMessageError('')
 
+    if (accessMode === 'demo') {
+      const savedMessages = JSON.parse(
+          localStorage.getItem('demo_daily_messages') || '[]'
+      )
+
+      const todayMessage = savedMessages.find(
+          (item) => item.message_date === today
+      )
+
+      if (todayMessage) {
+        setDailyMessage(todayMessage.message_text)
+      } else {
+        setDailyMessage('')
+      }
+
+      return
+    }
+
     const { data, error } = await supabase
         .from('daily_messages')
         .select('*')
@@ -515,6 +745,61 @@ function App() {
     setDailyMessageLoading(true)
     setDailyMessageError('')
 
+    if (accessMode === 'demo') {
+      const savedMessages = JSON.parse(
+          localStorage.getItem('demo_daily_messages') || '[]'
+      )
+
+      const existingMessage = savedMessages.find(
+          (item) => item.message_date === today
+      )
+
+      if (existingMessage) {
+        setDailyMessage(existingMessage.message_text)
+        setDailyMessageLoading(false)
+        return
+      }
+
+      const sortedMessages = [...savedMessages].sort(
+          (a, b) => b.message_date.localeCompare(a.message_date)
+      )
+
+      const lastMessage = sortedMessages[0]?.message_text
+
+      let availableMessages = dailyMessagePool.filter(
+          (message) => message !== lastMessage
+      )
+
+      if (availableMessages.length === 0) {
+        availableMessages = dailyMessagePool
+      }
+
+      const randomIndex = Math.floor(
+          Math.random() * availableMessages.length
+      )
+
+      const selectedMessage = availableMessages[randomIndex]
+
+      const newMessage = {
+        message_date: today,
+        message_text: selectedMessage,
+      }
+
+      const updatedMessages = [
+        newMessage,
+        ...savedMessages,
+      ]
+
+      localStorage.setItem(
+          'demo_daily_messages',
+          JSON.stringify(updatedMessages)
+      )
+
+      setDailyMessage(selectedMessage)
+      setDailyMessageLoading(false)
+      return
+    }
+
     const { data: existingMessage } = await supabase
         .from('daily_messages')
         .select('*')
@@ -536,15 +821,18 @@ function App() {
 
     const lastMessage = lastMessages?.[0]?.message_text
 
-    let availableMessages = dailyMessagePool.filter((message) => (
-        message !== lastMessage
-    ))
+    let availableMessages = dailyMessagePool.filter(
+        (message) => message !== lastMessage
+    )
 
     if (availableMessages.length === 0) {
       availableMessages = dailyMessagePool
     }
 
-    const randomIndex = Math.floor(Math.random() * availableMessages.length)
+    const randomIndex = Math.floor(
+        Math.random() * availableMessages.length
+    )
+
     const selectedMessage = availableMessages[randomIndex]
 
     const { data, error } = await supabase
@@ -557,7 +845,9 @@ function App() {
         .single()
 
     if (error) {
-      setDailyMessageError('Mesaj açılırken bir sorun oldu. Bir daha dener misin?')
+      setDailyMessageError(
+          'Mesaj açılırken bir sorun oldu. Bir daha dener misin?'
+      )
       setDailyMessageLoading(false)
       return
     }
@@ -567,6 +857,26 @@ function App() {
   }
 
   async function updateWishlistStatus(itemId, newStatus) {
+    if (accessMode === 'demo') {
+      const savedItems = JSON.parse(
+          localStorage.getItem('demo_wishlist_items') || '[]'
+      )
+
+      const updatedItems = savedItems.map((item) =>
+          item.id === itemId
+              ? { ...item, status: newStatus }
+              : item
+      )
+
+      localStorage.setItem(
+          'demo_wishlist_items',
+          JSON.stringify(updatedItems)
+      )
+
+      setWishlistItems(updatedItems)
+      return
+    }
+
     const { error } = await supabase
         .from('wishlist_items')
         .update({ status: newStatus })
@@ -592,6 +902,25 @@ function App() {
       return
     }
 
+    if (accessMode === 'demo') {
+      const savedItems = JSON.parse(
+          localStorage.getItem('demo_wishlist_items') || '[]'
+      )
+
+      const updatedItems = savedItems.filter(
+          (item) => item.id !== itemToDelete.id
+      )
+
+      localStorage.setItem(
+          'demo_wishlist_items',
+          JSON.stringify(updatedItems)
+      )
+
+      setWishlistItems(updatedItems)
+      setItemToDelete(null)
+      return
+    }
+
     const { error } = await supabase
         .from('wishlist_items')
         .delete()
@@ -602,11 +931,33 @@ function App() {
       return
     }
 
-    setWishlistItems(wishlistItems.filter((item) => item.id !== itemToDelete.id))
+    setWishlistItems(
+        wishlistItems.filter((item) => item.id !== itemToDelete.id)
+    )
+
     setItemToDelete(null)
   }
 
   async function deleteEntry(entryId) {
+    if (accessMode === 'demo') {
+      const savedEntries = JSON.parse(
+          localStorage.getItem('demo_entries') || '[]'
+      )
+
+      const updatedEntries = savedEntries.filter(
+          (entry) => entry.id !== entryId
+      )
+
+      localStorage.setItem(
+          'demo_entries',
+          JSON.stringify(updatedEntries)
+      )
+
+      setEntries(entries.filter((entry) => entry.id !== entryId))
+      setEntryToDelete(null)
+      return
+    }
+
     const { error } = await supabase
         .from('entries')
         .delete()
@@ -1405,6 +1756,14 @@ if (currentPage === 'wishlist') {
   return (
       <main className="app minimal-home-shell">
         <section className="minimal-home">
+          <button
+              className="logout-icon-button"
+              onClick={accessMode === 'private' ? handleLogout : handleExitDemo}
+              aria-label={accessMode === 'private' ? 'Çıkış yap' : 'Demo modundan çık'}
+              title={accessMode === 'private' ? 'Çıkış yap' : 'Demo modundan çık'}
+          >
+            <Power size={22} />
+          </button>
           <p className="minimal-date">{todayDateLabel}</p>
 
           <h1 className="minimal-day-title">{formattedTodayDayName}</h1>

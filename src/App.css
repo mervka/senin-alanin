@@ -364,6 +364,42 @@ h1,
   text-transform: uppercase;
 }
 
+/* Log Out Button */
+
+.logout-icon-button {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 52px);
+  right: max(22px, calc((100vw - 430px) / 2 + 22px));
+  z-index: 2000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+  padding: 0;
+
+  border: 1px solid var(--nav);
+  border-radius: 50%;
+
+  background: var(--bg);
+  color: var(--nav);
+  cursor: pointer;
+
+  transition:
+          background 0.2s ease,
+          transform 0.2s ease;
+}
+
+.logout-icon-button:hover {
+  background: var(--nav-soft);
+}
+
+.logout-icon-button:active {
+  transform: scale(0.94);
+}
+
 /* ALT NAVIGATION */
 
 .bottom-nav {
@@ -1124,10 +1160,10 @@ h1,
 /* Sol üst uygulama adı */
 body::before {
   content: "ÇaçoşLog";
-  position: fixed;
+  position: absolute;
   top: calc(env(safe-area-inset-top) + 18px);
   right: max(22px, calc((100vw - 430px) / 2 + 22px));
-  z-index: 2000;
+  z-index: 20;
 
   color: var(--nav);
   font-family: "Barlow", sans-serif;
@@ -1136,3 +1172,20 @@ body::before {
   letter-spacing: 0.02em;
   pointer-events: none;
 }
+
+/*Giriş Ekranı*/
+.access-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 30px;
+}
+
+.access-card {
+  width: 100%;
+  max-width: 370px;
+  margin: 0;
+}
+
+
